@@ -22,3 +22,7 @@ services:
       - 8080:8080
     command: |
       wait-for postgres:5432 -- python run.py
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev
