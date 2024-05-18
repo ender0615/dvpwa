@@ -1,4 +1,5 @@
 import logging
+import secrets
 
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPForbidden, HTTPInternalServerError
@@ -8,19 +9,13 @@ from aiohttp_session.redis_storage import RedisStorage
 
 log = logging.getLogger(__name__)
 
-
 @web.middleware
 async def session_middleware(request, handler):
-    """Wrapper to Session Middleware factory.
-    """
-    # Do the trick, by passing app & handler back to original session
-    # middleware factory. Do not forget to await on results here as original
-    # session middleware factory is also awaitable.
+    """Wrapper to Session Middleware factory."""
     app = request.app
     storage = RedisStorage(app['redis'], httponly=False)
     middleware = session_middleware_(storage)
     return await middleware(request, handler)
-
 
 @web.middleware
 async def csrf_middleware(request, handler):
@@ -35,8 +30,27 @@ async def csrf_middleware(request, handler):
                 request.rel_url
             )
             raise HTTPForbidden()
-    return await handler(request)
+    response = await handler(request)
+    if 'set-cookie' not in response.headers:
+        session = await get_session(request)
+        session['_csrf_token'] = secrets.token_urlsafe()
+    return response
 
+@web.middleware
+async def csp_middleware(request, handler):
+    response = await handler(request)
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://trusted.cdn.com; "
+        "connect-src 'self'; "
+        "img-src 'self' data: https://trusted.cdn.com; "
+        "style-src 'self' 'unsafe-inline' https://trusted.cdn.com; "
+        "font-src 'self' data: https://trusted.cdn.com; "
+        "frame-ancestors 'none'; "
+        "form-action 'self'; "
+        "base-uri 'self';"
+    )
+    return response
 
 def error_pages(overrides):
     @web.middleware
@@ -54,25 +68,24 @@ def error_pages(overrides):
                 raise
             else:
                 return await override(request, ex)
-
     return middleware
-
 
 async def handle_40x(request, exc):
     response = render_template('errors/40x.jinja2',
                                request,
                                {'error': exc})
+    response.set_status(exc.status)
     return response
-
 
 async def handle_50x(request, exc):
     response = render_template('errors/50x.jinja2',
                                request,
                                {'error': exc})
+    response.set_status(exc.status)
     return response
-
 
 error_middleware = error_pages({
     x: handle_40x if x < 500 else handle_50x
     for x in range(401, 600)
 })
+

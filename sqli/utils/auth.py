@@ -27,5 +27,8 @@ async def get_auth_user(request: Request) -> Optional[User]:
     app: Application = request.app
     session = await get_session(request)
     user_id = session.get('user_id')
+    if user_id is None:
+        return None
     async with app['db'].acquire() as conn:
         return await User.get(conn, user_id)
+

@@ -6,12 +6,8 @@
     <div class="col s12">
         <a href="/" class="breadcrumb">SQLI</a>
         <a href="/courses/" class="breadcrumb">Courses</a>
-        <a href="/courses/{{ course.id }}" class="breadcrumb">
-            {{ course.title | e }}
-        </a>
-        <a href="/courses/{{ course.id }}/review" class="breadcrumb">
-            Review
-        </a>
+        <a href="/courses/{{ course.id }}" class="breadcrumb">{{ course.title | e }}</a>
+        <a href="/courses/{{ course.id }}/review" class="breadcrumb">Review</a>
     </div>
 {% endblock %}
 
@@ -22,7 +18,7 @@
                 {% if errors %}
                     <div class="row">
                         <div class="toast" style="top: 0;">
-                            {% for fieldname, errors in errors.items %}
+                            {% for fieldname, error in errors.items %}
                                 <span>{{ fieldname }}: {{ error }}</span>
                             {% endfor %}
                         </div>
@@ -30,7 +26,7 @@
                 {% endif %}
                 <div class="card-content">
                     <span class="card-title">Write review to {{ course.title }}</span>
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
                     <div class="row">
                         <div class="input-field col s12">
                             <textarea id="review_text" name="review_text" class="materialize-textarea"></textarea>
@@ -39,14 +35,8 @@
                     </div>
                 </div>
                 <div class="card-action">
-                    <button class="btn pink waves-effect waves-light" type="submit">
-                        Save
-                    </button>
-                    <a class="btn-flat waves-effect waves-pink text-black"
-                       href="/courses/{{ course.id }}"
-                    >
-                        Cancel
-                    </a>
+                    <button class="btn pink waves-effect waves-light" type="submit">Save</button>
+                    <a class="btn-flat waves-effect waves-pink text-black" href="/courses/{{ course.id }}">Cancel</a>
                 </div>
             </div>
         </form>
